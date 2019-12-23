@@ -46,7 +46,10 @@ struct check_t {
 
 class Supervision : public arangodb::CriticalThread {
  public:
-  typedef std::chrono::system_clock::time_point TimePoint;
+  using clock = std::chrono::system_clock;
+
+  typedef clock::time_point TimePoint;
+  typedef clock::duration Duration;
   typedef std::string ServerID;
   typedef std::string ServerStatus;
   typedef std::string ServerTimestamp;
@@ -174,8 +177,8 @@ class Supervision : public arangodb::CriticalThread {
   void shrinkCluster();
 
  public:
-  static void cleanupLostCollections(Node const& snapshot, AgentInterface* agent,
-                                     uint64_t& jobId);
+  static void cleanupLostCollections(Node const& snapshot,
+                                     AgentInterface* agent, uint64_t& jobId);
 
  private:
   /**
@@ -209,7 +212,7 @@ class Supervision : public arangodb::CriticalThread {
   double _okThreshold;
   uint64_t _jobId;
   uint64_t _jobIdMax;
-  bool _haveAborts;        /**< @brief We have accumulated pending aborts in a round */
+  bool _haveAborts; /**< @brief We have accumulated pending aborts in a round */
 
   // mop: this feels very hacky...we have a hen and egg problem here
   // we are using /Shutdown in the agency to determine that the cluster should

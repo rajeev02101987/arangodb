@@ -115,7 +115,7 @@ struct Job {
 
   virtual Result abort(std::string const& reason) = 0;
 
-  virtual bool finish(std::string const& server, std::string const& shard,
+  bool finish(std::string const& server, std::string const& shard,
                       bool success = true, std::string const& reason = std::string(),
                       query_t const payload = nullptr);
 

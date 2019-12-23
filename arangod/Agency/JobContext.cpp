@@ -26,6 +26,7 @@
 #include "Agency/ActiveFailoverJob.h"
 #include "Agency/AddFollower.h"
 #include "Agency/CleanOutServer.h"
+#include "Agency/DummyJob.h"
 #include "Agency/FailedFollower.h"
 #include "Agency/FailedLeader.h"
 #include "Agency/FailedServer.h"
@@ -64,6 +65,10 @@ JobContext::JobContext(JOB_STATUS status, std::string id, Node const& snapshot,
     _job = std::make_unique<RemoveFollower>(snapshot, agent, status, id);
   } else if (type == "activeFailover") {
     _job = std::make_unique<ActiveFailoverJob>(snapshot, agent, status, id);
+#ifdef ARANGODB_ENABLE_MAINTAINER_MODE
+  } else if (type == "dummy") {
+      _job = std::make_unique<DummyJob>(snapshot, agent, status, id);
+#endif
   } else {
     LOG_TOPIC("bb53f", ERR, Logger::AGENCY)
         << "Failed to run supervision job " << type << " with id " << id;

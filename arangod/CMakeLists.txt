@@ -497,8 +497,11 @@ set(LIB_ARANGO_AGENCY_SOURCES
   Agency/State.cpp
   Agency/Store.cpp
   Agency/Supervision.cpp
-  Agency/v8-agency.cpp
-)
+  Agency/v8-agency.cpp)
+
+if (USE_MAINTAINER_MODE)
+    set(LIB_ARANGO_AGENCY_SOURCES ${LIB_ARANGO_AGENCY_SOURCES} Agency/DummyJob.cpp)
+endif()
 
 set(LIB_ARANGO_V8SERVER_SOURCES
   Transaction/V8Context.cpp
@@ -712,7 +715,7 @@ set(LIB_ARANGO_CLUSTER_METHODS_SOURCES
 )
 
 if (USE_MAINTAINER_MODE)
-  set(LIB_ARANGOSERVER_SOURCES ${LIB_ARANGOSERVER_SOURCES} RestHandler/RestTestHandler.cpp)
+    set(LIB_ARANGOSERVER_SOURCES ${LIB_ARANGOSERVER_SOURCES} RestHandler/RestTestHandler.cpp)
 endif()
 
 if (NOT MSVC)
@@ -780,7 +783,7 @@ add_library(arango_agency STATIC
   ${LIB_ARANGO_AGENCY_SOURCES}
 )
 
-add_library(arangoserver STATIC 
+add_library(arangoserver STATIC
   ${LIB_ARANGOSERVER_SOURCES}
   ${ADDITIONAL_LIB_ARANGOSERVER_SOURCES}
   ${ProductVersionFiles}
@@ -791,11 +794,11 @@ add_library(arango_network STATIC
 )
 
 add_library(arango_mmfiles STATIC
-  ${MMFILES_SOURCES} 
+  ${MMFILES_SOURCES}
 )
 
 add_library(arango_rocksdb STATIC
-  ${ROCKSDB_SOURCES} 
+  ${ROCKSDB_SOURCES}
   ${ADDITIONAL_LIB_ARANGO_ROCKSDB_SOURCES}
 )
 
@@ -997,7 +1000,7 @@ endif ()
 if (USE_JEMALLOC)
   add_dependencies(arangod jemalloc)
 endif ()
-  
+
 foreach(TARGET
   arango_agency
   arango_aql
