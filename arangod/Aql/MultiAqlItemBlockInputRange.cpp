@@ -38,8 +38,8 @@ namespace {
     if (!row.isInitialized()) {
       return false;
     }
-    for (RegisterId registerId = 0; registerId < row.getNrRegisters(); ++registerId) {
-      if (!row.getValue(registerId).isEmpty()) {
+    for (RegisterCount registerId = 0; registerId < row.getNrRegisters(); ++registerId) {
+      if (!row.getValue(RegisterId{registerId}).isEmpty()) {
         return true;
       }
     }
@@ -151,7 +151,7 @@ auto MultiAqlItemBlockInputRange::nextShadowRow()
   // Only one (a random one) will contain the data.
   TRI_ASSERT(!_inputs.empty());
   auto [state, shadowRow] = _inputs.at(0).nextShadowRow();
-  
+
   bool foundData = ::RowHasNonEmptyValue(shadowRow);
   for (size_t i = 1; i < _inputs.size(); ++i) {
     auto [otherState, otherRow] = _inputs.at(i).nextShadowRow();

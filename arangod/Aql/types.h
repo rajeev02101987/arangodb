@@ -43,11 +43,17 @@ struct Collection;
 typedef uint32_t VariableId;
 
 /// @brief type for register numbers/ids
-/*class RegisterId : public basics::Identifier {
+class RegisterId : public basics::Identifier {
  public:
   using Identifier::Identifier;
-};*/
-typedef unsigned RegisterId;
+
+  RegisterId& operator++() {
+    this->
+    return *this;
+  }
+};
+
+//typedef unsigned RegisterId;
 typedef size_t RegisterCount;
 
 /// @brief type of a query id
@@ -85,6 +91,6 @@ using GraphEngineList = std::vector<std::pair<arangodb::aql::EngineId, std::uniq
 
 }  // namespace arangodb
 
-//DECLARE_HASH_FOR_IDENTIFIER(arangodb::aql::RegisterId)
+DECLARE_HASH_FOR_IDENTIFIER(arangodb::aql::RegisterId)
 
 #endif

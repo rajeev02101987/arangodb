@@ -43,7 +43,7 @@ AqlItemBlockManager::AqlItemBlockManager(ResourceMonitor* resourceMonitor,
 AqlItemBlockManager::~AqlItemBlockManager() = default;
 
 /// @brief request a block with the specified size
-SharedAqlItemBlockPtr AqlItemBlockManager::requestBlock(size_t nrItems, RegisterId nrRegs) {
+SharedAqlItemBlockPtr AqlItemBlockManager::requestBlock(size_t nrItems, RegisterCount nrRegs) {
   size_t const targetSize = nrItems * (nrRegs + 1);
 
   AqlItemBlock* block = nullptr;
@@ -52,7 +52,7 @@ SharedAqlItemBlockPtr AqlItemBlockManager::requestBlock(size_t nrItems, Register
   int tries = 0;
   do {
     TRI_ASSERT(i < numBuckets);
-    
+
     std::lock_guard<std::mutex> guard(_buckets[i]._mutex);
     if (!_buckets[i].empty()) {
       block = _buckets[i].pop();
@@ -122,7 +122,7 @@ SharedAqlItemBlockPtr AqlItemBlockManager::requestAndInitBlock(arangodb::velocyp
   auto const nrItemsSigned =
       VelocyPackHelper::getNumericValue<int64_t>(slice, "nrItems", 0);
   auto const nrRegs =
-      VelocyPackHelper::getNumericValue<RegisterId>(slice, "nrRegs", 0);
+      VelocyPackHelper::getNumericValue<RegisterCount>(slice, "nrRegs", 0);
   if (nrItemsSigned <= 0) {
     THROW_ARANGO_EXCEPTION_MESSAGE(TRI_ERROR_INTERNAL, "nrItems must be > 0");
   }
@@ -196,7 +196,7 @@ uint32_t AqlItemBlockManager::Bucket::getId(size_t targetSize) noexcept {
   if (ADB_UNLIKELY(targetSize >= (1ULL << numBuckets))) {
     return (numBuckets - 1);
   }
-  
+
   uint32_t value = arangodb::NumberUtils::log2(static_cast<uint32_t>(targetSize));
   TRI_ASSERT(value < numBuckets);
   return value;

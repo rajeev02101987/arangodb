@@ -49,12 +49,13 @@ SharedAqlItemBlockPtr InputAqlItemRow::cloneToBlock(AqlItemBlockManager& manager
                                                     std::unordered_set<RegisterId> const& registers,
                                                     size_t newNrRegs) const {
   SharedAqlItemBlockPtr block =
-      manager.requestBlock(1, static_cast<RegisterId>(newNrRegs));
+      manager.requestBlock(1, static_cast<RegisterCount>(newNrRegs));
   if (isInitialized()) {
     std::unordered_set<AqlValue> cache;
     TRI_ASSERT(getNrRegisters() <= newNrRegs);
     // Should we transform this to output row and reuse copy row?
-    for (RegisterId col = 0; col < getNrRegisters(); col++) {
+    for (RegisterCount colNum; colNum < getNrRegisters(); colNum++) {
+      RegisterId col{colNum};
       if (registers.find(col) == registers.end()) {
         continue;
       }
@@ -148,13 +149,13 @@ InputAqlItemRow::InputAqlItemRow(SharedAqlItemBlockPtr&& block, size_t baseIndex
 
 AqlValue const& InputAqlItemRow::getValue(RegisterId registerId) const {
   TRI_ASSERT(isInitialized());
-  TRI_ASSERT(registerId < getNrRegisters());
+  TRI_ASSERT(registerId.id() < getNrRegisters());
   return block().getValueReference(_baseIndex, registerId);
 }
 
 AqlValue InputAqlItemRow::stealValue(RegisterId registerId) {
   TRI_ASSERT(isInitialized());
-  TRI_ASSERT(registerId < getNrRegisters());
+  TRI_ASSERT(registerId.id() < getNrRegisters());
   AqlValue const& a = block().getValueReference(_baseIndex, registerId);
   if (!a.isEmpty() && a.requiresDestruction()) {
     // Now no one is responsible for AqlValue a
@@ -185,8 +186,8 @@ bool InputAqlItemRow::equates(InputAqlItemRow const& other,
   auto const eq = [options](auto left, auto right) {
     return 0 == AqlValue::Compare(options, left, right, false);
   };
-  for (RegisterId i = 0; i < getNrRegisters(); ++i) {
-    if (!eq(getValue(i), other.getValue(i))) {
+  for (RegisterCount i = 0; i < getNrRegisters(); ++i) {
+    if (!eq(getValue(RegisterId{i}), other.getValue(RegisterId{i}))) {
       return false;
     }
   }

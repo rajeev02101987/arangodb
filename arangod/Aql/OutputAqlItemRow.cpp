@@ -71,20 +71,20 @@ OutputAqlItemRow::OutputAqlItemRow(
 #ifdef ARANGODB_ENABLE_MAINTAINER_MODE
   if (_block != nullptr) {
     for (auto const& reg : _outputRegisters) {
-      TRI_ASSERT(reg < _block->getNrRegs());
+      TRI_ASSERT(reg.id() < _block->getNrRegs());
     }
     // the block must have enough columns for the registers of both data rows,
     // and all the different shadow row depths
     if (_doNotCopyInputRow) {
       // pass-through case, we won't use _registersToKeep
       for (auto const& reg : _registersToClear) {
-        TRI_ASSERT(reg < _block->getNrRegs());
+        TRI_ASSERT(reg.id() < _block->getNrRegs());
       }
     } else {
       // copying (non-pass-through) case, we won't use _registersToClear
       for (auto const& stackEntry : _registersToKeep) {
         for (auto const& reg : stackEntry) {
-          TRI_ASSERT(reg < _block->getNrRegs());
+          TRI_ASSERT(reg.id() < _block->getNrRegs());
         }
       }
     }
@@ -109,7 +109,7 @@ template <class ItemRowType>
 void OutputAqlItemRow::moveValueWithoutRowCopy(RegisterId registerId, AqlValueGuard& guard) {
   TRI_ASSERT(isOutputRegister(registerId));
   // This is already implicitly asserted by isOutputRegister:
-  TRI_ASSERT(registerId < getNrRegisters());
+  TRI_ASSERT(registerId.id() < getNrRegisters());
   TRI_ASSERT(_numValuesWritten < numRegistersToWrite());
   TRI_ASSERT(block().getValueReference(_baseIndex, registerId).isNone());
 
@@ -227,7 +227,7 @@ void OutputAqlItemRow::copyBlockInternalRegister(InputAqlItemRow const& sourceRo
 #endif
   TRI_ASSERT(isOutputRegister(output));
   // This is already implicitly asserted by isOutputRegister:
-  TRI_ASSERT(output < getNrRegisters());
+  TRI_ASSERT(output.id() < getNrRegisters());
   TRI_ASSERT(_numValuesWritten < numRegistersToWrite());
   TRI_ASSERT(block().getValueReference(_baseIndex, output).isNone());
 
@@ -447,7 +447,7 @@ void OutputAqlItemRow::doCopyOrMoveRow(ItemRowType& sourceRow, bool ignoreMissin
         TRI_ASSERT(sourceRow.isInitialized());
       }
 #endif
-      if (ignoreMissing && itemId >= sourceRow.getNrRegisters()) {
+      if (ignoreMissing && itemId.id() >= sourceRow.getNrRegisters()) {
         continue;
       }
       if (ADB_LIKELY(!_allowSourceRowUninitialized || sourceRow.isInitialized())) {

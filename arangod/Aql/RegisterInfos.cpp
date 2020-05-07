@@ -50,19 +50,19 @@ RegisterInfos::RegisterInfos(
 
 #ifdef ARANGODB_ENABLE_MAINTAINER_MODE
   for (RegisterId const inReg : _inRegs) {
-    TRI_ASSERT(inReg < nrInputRegisters);
+    TRI_ASSERT(inReg.id() < nrInputRegisters);
   }
   for (RegisterId const outReg : _outRegs) {
-    TRI_ASSERT(outReg < nrOutputRegisters);
+    TRI_ASSERT(outReg.id() < nrOutputRegisters);
   }
   for (RegisterId const regToClear : _registersToClear) {
     // sic: It's possible that a current output register is immediately cleared!
-    TRI_ASSERT(regToClear < nrOutputRegisters);
+    TRI_ASSERT(regToClear.id() < nrOutputRegisters);
     TRI_ASSERT(_registersToKeep.back().find(regToClear) == _registersToKeep.back().end());
   }
   TRI_ASSERT(!_registersToKeep.empty());
   for (RegisterId const regToKeep : _registersToKeep.back()) {
-    TRI_ASSERT(regToKeep < nrInputRegisters);
+    TRI_ASSERT(regToKeep.id() < nrInputRegisters);
     TRI_ASSERT(_registersToClear.find(regToKeep) == _registersToClear.end());
   }
 #endif

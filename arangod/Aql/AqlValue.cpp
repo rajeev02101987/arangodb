@@ -90,7 +90,7 @@ uint64_t AqlValue::hash(uint64_t seed) const {
     case DOCVEC:
     case RANGE: {
       uint64_t const n = _data.range->size();
-      
+
       // simon: copied from VPackSlice::normalizedHash()
       // normalize arrays by hashing array length and iterating
       // over all array members
@@ -102,7 +102,7 @@ uint64_t AqlValue::hash(uint64_t seed) const {
         double v = static_cast<double>(_data.range->at(i));
         value ^= VELOCYPACK_HASH(&v, sizeof(v), value);
       }
-      
+
       return value;
     }
   }
@@ -238,7 +238,7 @@ bool AqlValue::isString() const noexcept {
       break;
     }
   }
-  
+
   return false;
 }
 
@@ -263,7 +263,7 @@ bool AqlValue::isObject() const noexcept {
       break;
     }
   }
-  
+
   return false;
 }
 
@@ -289,7 +289,7 @@ bool AqlValue::isArray() const noexcept {
       break;
     }
   }
-  
+
   return true;
 }
 
@@ -380,10 +380,10 @@ AqlValue AqlValue::at(int64_t position, bool& mustDestroy, bool doCopy) const {
             if (doCopy) {
               mustDestroy = true;
               return it
-                  ->getValueReference(static_cast<size_t>(position - total), 0)
+                  ->getValueReference(static_cast<size_t>(position - total), RegisterId{0})
                   .clone();
             }
-            return it->getValue(static_cast<size_t>(position - total), 0);
+            return it->getValue(static_cast<size_t>(position - total), RegisterId{0});
           }
           total += it->size();
         }
@@ -456,10 +456,10 @@ AqlValue AqlValue::at(int64_t position, size_t n, bool& mustDestroy, bool doCopy
             if (doCopy) {
               mustDestroy = true;
               return it
-                  ->getValueReference(static_cast<size_t>(position - total), 0)
+                  ->getValueReference(static_cast<size_t>(position - total), RegisterId{0})
                   .clone();
             }
-            return it->getValue(static_cast<size_t>(position - total), 0);
+            return it->getValue(static_cast<size_t>(position - total), RegisterId{0});
           }
           total += it->size();
         }
@@ -1008,7 +1008,7 @@ v8::Handle<v8::Value> AqlValue::toV8(v8::Isolate* isolate, transaction::Methods*
       for (auto const& it : *_data.docvec) {
         size_t const n = it->size();
         for (size_t i = 0; i < n; ++i) {
-          result->Set(context, j++, it->getValueReference(i, 0).toV8(isolate, trx)).FromMaybe(false);
+          result->Set(context, j++, it->getValueReference(i, RegisterId{0}).toV8(isolate, trx)).FromMaybe(false);
 
           if (V8PlatformFeature::isOutOfMemory(isolate)) {
             THROW_ARANGO_EXCEPTION(TRI_ERROR_OUT_OF_MEMORY);
@@ -1075,7 +1075,7 @@ void AqlValue::toVelocyPack(VPackOptions const* options, arangodb::velocypack::B
       for (auto const& it : *_data.docvec) {
         size_t const n = it->size();
         for (size_t i = 0; i < n; ++i) {
-          it->getValueReference(i, 0).toVelocyPack(options, builder, resolveExternals);
+          it->getValueReference(i, RegisterId{0}).toVelocyPack(options, builder, resolveExternals);
         }
       }
       builder.close();
@@ -1305,9 +1305,9 @@ int AqlValue::Compare(velocypack::Options const* options, AqlValue const& left,
 
       while (lblock < lsize && rblock < rsize) {
         AqlValue const& lval =
-            left._data.docvec->at(lblock)->getValueReference(litem, 0);
+            left._data.docvec->at(lblock)->getValueReference(litem, RegisterId{0});
         AqlValue const& rval =
-            right._data.docvec->at(rblock)->getValueReference(ritem, 0);
+            right._data.docvec->at(rblock)->getValueReference(ritem, RegisterId{0});
 
         int cmp = Compare(options, lval, rval, compareUtf8);
 

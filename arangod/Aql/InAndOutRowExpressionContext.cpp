@@ -107,7 +107,7 @@ AqlValue InAndOutRowExpressionContext::getVariableValue(Variable const* variable
         }
         // Search InputRow
         RegisterId const& regId = _regs[i];
-        TRI_ASSERT(regId < _input.getNrRegisters());
+        TRI_ASSERT(regId.id() < _input.getNrRegisters());
         return _input.getValue(regId).clone();
       } else {
         mustDestroy = false;
@@ -122,7 +122,7 @@ AqlValue InAndOutRowExpressionContext::getVariableValue(Variable const* variable
         }
         // Search InputRow
         RegisterId const& regId = _regs[i];
-        TRI_ASSERT(regId < _input.getNrRegisters());
+        TRI_ASSERT(regId.id() < _input.getNrRegisters());
         return _input.getValue(regId);
       }
     }

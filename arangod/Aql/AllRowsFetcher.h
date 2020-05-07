@@ -206,7 +206,7 @@ class AllRowsFetcher {
   /**
    * @brief Delegates to ExecutionBlock::getNrInputRegisters()
    */
-  RegisterId getNrInputRegisters() const;
+  RegisterCount getNrInputRegisters() const;
 
   /**
    * @brief Delegates to ExecutionBlock::fetchBlock()

@@ -71,13 +71,13 @@ inline void CopyValueOver(std::unordered_set<AqlValue>& cache, AqlValue const& a
 }  // namespace
 
 /// @brief create the block
-AqlItemBlock::AqlItemBlock(AqlItemBlockManager& manager, size_t nrItems, RegisterId nrRegs)
+AqlItemBlock::AqlItemBlock(AqlItemBlockManager& manager, size_t nrItems, RegisterCount nrRegs)
     : _nrItems(nrItems), _nrRegs(nrRegs), _manager(manager), _refCount(0), _rowIndex(0) {
   TRI_ASSERT(nrItems > 0);  // empty AqlItemBlocks are not allowed!
   // check that the nrRegs value is somewhat sensible
   // this compare value is arbitrary, but having so many registers in a single
   // query seems unlikely
-  TRI_ASSERT(nrRegs <= RegisterPlan::MaxRegisterId);
+  TRI_ASSERT(nrRegs <= RegisterPlan::MaxRegisterId.id());
   increaseMemoryUsage(sizeof(AqlValue) * nrItems * internalNrRegs());
   try {
     _data.resize(nrItems * internalNrRegs());
@@ -95,7 +95,7 @@ void AqlItemBlock::initFromSlice(VPackSlice const slice) {
   }
   _nrItems = static_cast<size_t>(nrItems);
 
-  _nrRegs = VelocyPackHelper::getNumericValue<RegisterId>(slice, "nrRegs", 0);
+  _nrRegs = VelocyPackHelper::getNumericValue<RegisterCount>(slice, "nrRegs", 0);
 
   // Initialize the data vector:
   increaseMemoryUsage(sizeof(AqlValue) * _nrItems * internalNrRegs());
@@ -119,17 +119,17 @@ void AqlItemBlock::initFromSlice(VPackSlice const slice) {
 
   VPackArrayIterator dataIterator(data);
 
-  auto storeSingleValue = [this](size_t row, RegisterId column, VPackArrayIterator& it,
+  auto storeSingleValue = [this](size_t row, RegisterCount column, VPackArrayIterator& it,
                                  std::vector<AqlValue>& madeHere) {
     AqlValue a(it.value());
     it.next();
     try {
-      if (column == 0) {
+      if (RegisterId{column} == RegisterId{0}) {
         if (!a.isEmpty()) {
           setShadowRowDepth(row, a);
         }
       } else {
-        setValue(row, column - 1, a);  // if this throws, a is destroyed again
+        setValue(row, RegisterId{column - 1}, a);  // if this throws, a is destroyed again
       }
     } catch (...) {
       a.destroy();
@@ -149,12 +149,12 @@ void AqlItemBlock::initFromSlice(VPackSlice const slice) {
     // skip the first two records
     rawIterator.next();
     rawIterator.next();
-    RegisterId startColumn = 0;
+    RegisterCount startColumn = 0;
     if (getFormatType() == SerializationFormat::CLASSIC) {
       startColumn = 1;
     }
 
-    for (RegisterId column = startColumn; column < internalNrRegs(); column++) {
+    for (RegisterCount column = startColumn; column < internalNrRegs(); column++) {
       for (size_t i = 0; i < _nrItems; i++) {
         if (runLength > 0) {
           switch (runType) {
@@ -173,7 +173,7 @@ void AqlItemBlock::initFromSlice(VPackSlice const slice) {
                   setShadowRowDepth(i, madeHere[tablePos]);
                 }
               } else {
-                setValue(i, column - 1, madeHere[tablePos]);
+                setValue(i, RegisterId{column - 1}, madeHere[tablePos]);
               }
               break;
 
@@ -238,7 +238,7 @@ void AqlItemBlock::initFromSlice(VPackSlice const slice) {
                   setShadowRowDepth(i, madeHere[tablePos]);
                 }
               } else {
-                setValue(i, column - 1, madeHere[tablePos]);
+                setValue(i, RegisterId{column - 1}, madeHere[tablePos]);
               }
             }
           }
@@ -252,7 +252,7 @@ void AqlItemBlock::initFromSlice(VPackSlice const slice) {
           int64_t low = VelocyPackHelper::getNumericValue<int64_t>(lowBound, 0);
           int64_t high = VelocyPackHelper::getNumericValue<int64_t>(highBound, 0);
           TRI_ASSERT(column != 0);
-          emplaceValue(i, column - 1, low, high);
+          emplaceValue(i, RegisterId{column - 1}, low, high);
         } else if (n >= 2) {
           if (static_cast<size_t>(n) >= madeHere.size()) {
             // safeguard against out-of-bounds accesses
@@ -262,7 +262,7 @@ void AqlItemBlock::initFromSlice(VPackSlice const slice) {
           if (column == 0) {
             setShadowRowDepth(i, madeHere[static_cast<size_t>(n)]);
           } else {
-            setValue(i, column - 1, madeHere[static_cast<size_t>(n)]);
+            setValue(i, RegisterId{column - 1}, madeHere[static_cast<size_t>(n)]);
           }
 
           // If this throws, all is OK, because it was already put into
@@ -379,9 +379,9 @@ void AqlItemBlock::shrink(size_t nrItems) {
   }
 }
 
-void AqlItemBlock::rescale(size_t nrItems, RegisterId nrRegs) {
+void AqlItemBlock::rescale(size_t nrItems, RegisterCount nrRegs) {
   TRI_ASSERT(_valueCount.empty());
-  TRI_ASSERT(nrRegs <= RegisterPlan::MaxRegisterId);
+  TRI_ASSERT(nrRegs <= RegisterPlan::MaxRegisterId.id());
 
   size_t const targetSize = nrItems * (nrRegs + 1);
   size_t const currentSize = _nrItems * internalNrRegs();
@@ -460,7 +460,8 @@ SharedAqlItemBlockPtr AqlItemBlock::cloneDataAndMoveShadow() {
   SharedAqlItemBlockPtr res{aqlItemBlockManager().requestBlock(numRows, getNrRegs())};
 
   for (size_t row = 0; row < numRows; row++) {
-    for (RegisterId col = 0; col < getNrRegs(); col++) {
+    for (RegisterCount colNum = 0; colNum < getNrRegs(); colNum++) {
+      RegisterId col{colNum};
       if (isShadowRow(row)) {
         AqlValue a = stealAndEraseValue(row, col);
         AqlValueGuard guard{a, true};
@@ -531,7 +532,8 @@ auto AqlItemBlock::slice(std::vector<std::pair<size_t, size_t>> const& ranges) c
   for (auto const& [from, to] : ranges) {
     for (size_t row = from; row < to; row++, targetRow++) {
       // Note this loop is special, it will also Copy over the SubqueryDepth data in reg 0
-      for (RegisterId col = 0; col < _nrRegs; col++) {
+      for (RegisterCount colNum = 0; colNum < _nrRegs; colNum++) {
+        RegisterId col{colNum};
         AqlValue const& a(_data[getAddress(row, col)]);
         ::CopyValueOver(cache, a, targetRow, col, res);
       }
@@ -553,7 +555,8 @@ SharedAqlItemBlockPtr AqlItemBlock::slice(size_t row,
   std::unordered_set<AqlValue> cache;
 
   SharedAqlItemBlockPtr res{_manager.requestBlock(1, newNrRegs)};
-  for (RegisterId col = 0; col < _nrRegs; col++) {
+  for (RegisterCount colNum = 0; colNum < _nrRegs; colNum++) {
+    RegisterId col{colNum};
     if (registers.find(col) == registers.end()) {
       continue;
     }
@@ -580,7 +583,8 @@ SharedAqlItemBlockPtr AqlItemBlock::slice(std::vector<size_t> const& chosen,
   size_t resultRowIdx = 0;
   for (size_t chosenIdx = from; chosenIdx < to; ++chosenIdx, ++resultRowIdx) {
     size_t const rowIdx = chosen[chosenIdx];
-    for (RegisterId col = 0; col < _nrRegs; col++) {
+    for (RegisterCount colNum = 0; colNum < _nrRegs; colNum++) {
+      RegisterId col{colNum};
       AqlValue const& a = _data[getAddress(rowIdx, col)];
       ::CopyValueOver(cache, a, resultRowIdx, col, res);
     }
@@ -604,7 +608,8 @@ SharedAqlItemBlockPtr AqlItemBlock::steal(std::vector<size_t> const& chosen,
   SharedAqlItemBlockPtr res{_manager.requestBlock(to - from, _nrRegs)};
 
   for (size_t row = from; row < to; row++) {
-    for (RegisterId col = 0; col < _nrRegs; col++) {
+    for (RegisterCount colNum = 0; colNum < _nrRegs; colNum++) {
+      RegisterId col{colNum};
       AqlValue& a(_data[getAddress(chosen[row], col)]);
 
       if (!a.isEmpty()) {
@@ -735,12 +740,12 @@ void AqlItemBlock::toVelocyPack(size_t from, size_t to,
 
   size_t pos = 2;  // write position in raw
 
-  RegisterId startRegister = 0;
+  RegisterCount startRegister = 0;
   if (getFormatType() == SerializationFormat::CLASSIC) {
     // Skip over the shadowRows
     startRegister = 1;
   }
-  for (RegisterId column = startRegister; column < internalNrRegs(); column++) {
+  for (RegisterCount column = startRegister; column < internalNrRegs(); column++) {
     for (size_t i = from; i < to; i++) {
       AqlValue const& a(_data[i * internalNrRegs() + column]);
 
@@ -813,9 +818,9 @@ void AqlItemBlock::rowToSimpleVPack(size_t const row, velocypack::Options const*
     } else {
       builder.add(VPackSlice::nullSlice());
     }
-    RegisterId const n = getNrRegs();
-    for (RegisterId reg = 0; reg < n; ++reg) {
-      AqlValue const& ref = getValueReference(row, reg);
+    RegisterCount const n = getNrRegs();
+    for (RegisterCount reg = 0; reg < n; ++reg) {
+      AqlValue const& ref = getValueReference(row, RegisterId{reg});
       if (ref.isEmpty()) {
         builder.add(VPackSlice::noneSlice());
       } else {
@@ -985,7 +990,7 @@ AqlValue AqlItemBlock::stealAndEraseValue(size_t index, RegisterId varNr) {
   return value;
 }
 
-RegisterId AqlItemBlock::getNrRegs() const noexcept { return _nrRegs; }
+RegisterCount AqlItemBlock::getNrRegs() const noexcept { return _nrRegs; }
 
 size_t AqlItemBlock::size() const noexcept { return _nrItems; }
 
