@@ -71,7 +71,7 @@ class Identifier {
   /// @brief check if this identifier is at least another
   bool operator>=(Identifier const& other) const;
 
- private:
+ protected:
   BaseType _id;
 };
 

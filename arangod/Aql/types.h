@@ -48,8 +48,12 @@ class RegisterId : public basics::Identifier {
   using Identifier::Identifier;
 
   RegisterId& operator++() {
-    this->
+    _id++;
     return *this;
+  }
+
+  RegisterId operator++(int) {
+    return RegisterId{_id++};
   }
 };
 
